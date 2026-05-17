@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build dylib
+    - name: Build dylib without hash
       run: |
         SDK=$(xcrun --sdk iphoneos --show-sdk-path)
         clang -arch arm64 \
@@ -19,6 +19,26 @@ jobs:
           -shared \
           -framework UIKit \
           -framework Foundation \
+          -framework Security \
+          -lc \
+          -o AnimationBooster.dylib \
+          AnimationBooster.m SpeedOverlay.m
+
+    - name: Calculate hash and inject
+      run: |
+        HASH=$(md5 -q AnimationBooster.dylib)
+        echo "Hash: $HASH"
+        sed -i '' "s/VALID_HASH @\".*\"/VALID_HASH @\"$HASH\"/" SpeedOverlay.m
+
+    - name: Build final dylib with hash
+      run: |
+        SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+        clang -arch arm64 \
+          -isysroot $SDK \
+          -shared \
+          -framework UIKit \
+          -framework Foundation \
+          -lc \
           -o AnimationBooster.dylib \
           AnimationBooster.m SpeedOverlay.m
 
