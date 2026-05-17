@@ -1,17 +1,13 @@
 #import <UIKit/UIKit.h>
 
-// حالة السرعة
 static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
-static UIWindow *overlayWindow = nil;
 static UIButton *flyButton = nil;
 static UIButton *speedButton = nil;
 static UIButton *tgButton = nil;
+static UIView *menuView = nil;
 
-// تفعيل السرعة فعلياً
 static void applySpeed() {
-    // تسريع كل الانميشن بالتطبيق
-    [UIApplication sharedApplication].windows.firstObject.layer.speed = speedEnabled ? 2.0 : 1.0;
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if ([scene isKindOfClass:[UIWindowScene class]]) {
             for (UIWindow *w in ((UIWindowScene *)scene).windows) {
@@ -24,53 +20,52 @@ static void applySpeed() {
 static void toggleMenu() {
     menuOpen = !menuOpen;
     [UIView animateWithDuration:0.3 animations:^{
-        speedButton.alpha = menuOpen ? 1.0 : 0.0;
-        tgButton.alpha = menuOpen ? 1.0 : 0.0;
-        speedButton.hidden = !menuOpen;
-        tgButton.hidden = !menuOpen;
+        menuView.alpha = menuOpen ? 1.0 : 0.0;
     }];
 }
 
 static void hideMenu() {
     menuOpen = NO;
-    speedButton.hidden = YES;
-    tgButton.hidden = YES;
+    [UIView animateWithDuration:0.3 animations:^{
+        menuView.alpha = 0.0;
+    }];
 }
 
-static void showOverlay() {
-    overlayWindow = [[UIWindow alloc] initWithFrame:CGRectMake(10, 200, 160, 160)];
-    overlayWindow.windowLevel = UIWindowLevelAlert + 1;
-    overlayWindow.backgroundColor = [UIColor clearColor];
-    overlayWindow.hidden = NO;
-    overlayWindow.userInteractionEnabled = YES;
+static void setupOverlay(UIWindow *keyWindow) {
+    // الكونتينر الرئيسي
+    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(10, 200, 160, 165)];
+    container.backgroundColor = [UIColor clearColor];
+    container.userInteractionEnabled = YES;
+    [keyWindow addSubview:container];
 
-    UIViewController *vc = [[UIViewController alloc] init];
-    vc.view.backgroundColor = [UIColor clearColor];
-    overlayWindow.rootViewController = vc;
-
-    // زر ⌗ Fly الصغير
+    // زر Fly الصغير
     flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    flyButton.frame = CGRectMake(0, 0, 80, 35);
+    flyButton.frame = CGRectMake(0, 0, 80, 32);
     flyButton.layer.cornerRadius = 10;
-    flyButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.1 blue:0.1 alpha:0.9];
+    flyButton.backgroundColor = [UIColor colorWithRed:0.05 green:0.05 blue:0.05 alpha:0.95];
     flyButton.titleLabel.font = [UIFont boldSystemFontOfSize:12];
     [flyButton setTitle:@"⌗ Fly .." forState:UIControlStateNormal];
     [flyButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [flyButton addTarget:[NSBlockOperation blockOperationWithBlock:^{
-        toggleMenu();
-    }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
-    [vc.view addSubview:flyButton];
+    [flyButton addTarget:[NSBlockOperation blockOperationWithBlock:^{ toggleMenu(); }]
+                 action:@selector(main)
+       forControlEvents:UIControlEventTouchUpInside];
+    [container addSubview:flyButton];
+
+    // القائمة
+    menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 40, 155, 120)];
+    menuView.backgroundColor = [UIColor clearColor];
+    menuView.alpha = 0;
+    menuView.userInteractionEnabled = YES;
+    [container addSubview:menuView];
 
     // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    speedButton.frame = CGRectMake(0, 45, 150, 45);
+    speedButton.frame = CGRectMake(0, 0, 155, 50);
     speedButton.layer.cornerRadius = 12;
-    speedButton.titleLabel.font = [UIFont boldSystemFontOfSize:13];
-    speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.9];
+    speedButton.titleLabel.font = [UIFont boldSystemFontOfSize(13];
+    speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.95];
     [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
     [speedButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    speedButton.hidden = YES;
-    speedButton.alpha = 0;
     [speedButton addTarget:[NSBlockOperation blockOperationWithBlock:^{
         speedEnabled = !speedEnabled;
         applySpeed();
@@ -79,39 +74,39 @@ static void showOverlay() {
             speedButton.backgroundColor = [UIColor blackColor];
         } else {
             [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
-            speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.9];
+            speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.95];
         }
     }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
-    [vc.view addSubview:speedButton];
+    [menuView addSubview:speedButton];
 
     // زر تلقرام
     tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    tgButton.frame = CGRectMake(0, 100, 150, 45);
+    tgButton.frame = CGRectMake(0, 60, 155, 50);
     tgButton.layer.cornerRadius = 12;
     tgButton.titleLabel.font = [UIFont boldSystemFontOfSize:13];
-    tgButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.5 blue:0.8 alpha:0.9];
+    tgButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.48 blue:0.75 alpha:0.95];
     [tgButton setTitle:@"📩 التواصل مع المبرمج" forState:UIControlStateNormal];
     [tgButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    tgButton.hidden = YES;
-    tgButton.alpha = 0;
     [tgButton addTarget:[NSBlockOperation blockOperationWithBlock:^{
-        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/LJFNQ"] options:@{} completionHandler:nil];
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/LJFNQ"]
+                                           options:@{}
+                                 completionHandler:nil];
     }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
-    [vc.view addSubview:tgButton];
-
-    [overlayWindow makeKeyAndVisible];
-
-    // مراقبة دخول الروم
-    [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidEnterNotification"
-        object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
-            hideMenu();
-        }];
+    [menuView addSubview:tgButton];
 }
 
 __attribute__((constructor))
 static void init() {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)),
         dispatch_get_main_queue(), ^{
-            showOverlay();
+            UIWindow *keyWindow = nil;
+            for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+                if ([scene isKindOfClass:[UIWindowScene class]]) {
+                    for (UIWindow *w in ((UIWindowScene *)scene).windows) {
+                        if (w.isKeyWindow) { keyWindow = w; break; }
+                    }
+                }
+            }
+            if (keyWindow) setupOverlay(keyWindow);
         });
 }
