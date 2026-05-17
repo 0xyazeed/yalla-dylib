@@ -8,10 +8,14 @@ static BOOL menuOpen = NO;
 static UIButton *speedButton = nil;
 static UIView *menuView = nil;
 static UIWindow *overlayWindow = nil;
-static FlyController *controller = nil;
 
 @interface FlyController : UIViewController
+- (void)applySpeed;
+- (void)hideOverlay;
+- (void)showOverlay;
 @end
+
+static FlyController *controller = nil;
 
 @implementation FlyController
 
@@ -87,7 +91,6 @@ static void swizzled_viewDidAppear(id self, SEL _cmd, BOOL animated) {
 }
 
 static void setupOverlay() {
-    // استرجاع حالة السرعة المحفوظة
     speedEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:SPEED_KEY];
 
     CGRect screen = [UIScreen mainScreen].bounds;
@@ -105,7 +108,6 @@ static void setupOverlay() {
     overlayWindow.rootViewController = controller;
     overlayWindow.hidden = NO;
 
-    // زر ⌗ 10th battalión
     UIButton *flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     flyButton.frame = CGRectMake(0, 120, 140, 30);
     flyButton.layer.cornerRadius = 8;
@@ -116,14 +118,12 @@ static void setupOverlay() {
     [flyButton addTarget:controller action:@selector(flyTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:flyButton];
 
-    // القائمة
     menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 5, 140, 112)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [controller.view addSubview:menuView];
 
-    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
     speedButton.frame = CGRectMake(0, 0, 140, 50);
     speedButton.layer.cornerRadius = 10;
@@ -139,7 +139,6 @@ static void setupOverlay() {
     [speedButton addTarget:controller action:@selector(speedTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
-    // زر تلقرام
     UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
     tgButton.frame = CGRectMake(0, 58, 140, 50);
     tgButton.layer.cornerRadius = 10;
@@ -150,10 +149,8 @@ static void setupOverlay() {
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
 
-    // تطبيق السرعة المحفوظة
     [controller applySpeed];
 
-    // مراقبة الشاشات
     Method m = class_getInstanceMethod([UIViewController class], @selector(viewDidAppear:));
     orig_viewDidAppear = (void *)method_getImplementation(m);
     method_setImplementation(m, (IMP)swizzled_viewDidAppear);
