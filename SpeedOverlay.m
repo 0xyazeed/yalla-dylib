@@ -1,6 +1,8 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
+#define SPEED_KEY @"speedEnabled"
+
 static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
 static UIButton *speedButton = nil;
@@ -22,6 +24,19 @@ static FlyController *controller = nil;
 
 - (void)speedTapped {
     speedEnabled = !speedEnabled;
+    [[NSUserDefaults standardUserDefaults] setBool:speedEnabled forKey:SPEED_KEY];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+    [self applySpeed];
+    if (speedEnabled) {
+        [speedButton setTitle:@"✅ تم تفعيل السبيد" forState:UIControlStateNormal];
+        speedButton.backgroundColor = [UIColor blackColor];
+    } else {
+        [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
+        speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
+    }
+}
+
+- (void)applySpeed {
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if ([scene isKindOfClass:[UIWindowScene class]]) {
             for (UIWindow *w in ((UIWindowScene *)scene).windows) {
@@ -30,13 +45,6 @@ static FlyController *controller = nil;
         }
     }
     [UIView setAnimationsEnabled:!speedEnabled];
-    if (speedEnabled) {
-        [speedButton setTitle:@"✅ تم تفعيل السبيد" forState:UIControlStateNormal];
-        speedButton.backgroundColor = [UIColor blackColor];
-    } else {
-        [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
-        speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
-    }
 }
 
 - (void)tgTapped {
@@ -63,12 +71,10 @@ static FlyController *controller = nil;
 
 @end
 
-// مراقبة تغيير الـ viewController تلقائياً
 static void (*orig_viewDidAppear)(id, SEL, BOOL);
 static void swizzled_viewDidAppear(id self, SEL _cmd, BOOL animated) {
     orig_viewDidAppear(self, _cmd, animated);
     NSString *name = NSStringFromClass([self class]);
-    // اذا اسم الكلاس فيه Room او Live يختفي الزر
     if ([name containsString:@"Room"] || [name containsString:@"Live"] || [name containsString:@"Chat"]) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [controller hideOverlay];
@@ -81,11 +87,14 @@ static void swizzled_viewDidAppear(id self, SEL _cmd, BOOL animated) {
 }
 
 static void setupOverlay() {
+    // استرجاع حالة السرعة المحفوظة
+    speedEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:SPEED_KEY];
+
     CGRect screen = [UIScreen mainScreen].bounds;
     CGFloat w = 145;
     CGFloat h = 160;
     CGFloat x = screen.size.width - w - 10;
-    CGFloat y = screen.size.height - h - 120;
+    CGFloat y = screen.size.height - h - 200;
 
     overlayWindow = [[UIWindow alloc] initWithFrame:CGRectMake(x, y, w, h)];
     overlayWindow.windowLevel = UIWindowLevelAlert + 100;
@@ -119,8 +128,13 @@ static void setupOverlay() {
     speedButton.frame = CGRectMake(0, 0, 140, 50);
     speedButton.layer.cornerRadius = 10;
     speedButton.titleLabel.font = [UIFont boldSystemFontOfSize:12];
-    speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
-    [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
+    if (speedEnabled) {
+        speedButton.backgroundColor = [UIColor blackColor];
+        [speedButton setTitle:@"✅ تم تفعيل السبيد" forState:UIControlStateNormal];
+    } else {
+        speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
+        [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
+    }
     [speedButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [speedButton addTarget:controller action:@selector(speedTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
@@ -136,7 +150,10 @@ static void setupOverlay() {
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
 
-    // swizzle viewDidAppear لمراقبة الشاشات
+    // تطبيق السرعة المحفوظة
+    [controller applySpeed];
+
+    // مراقبة الشاشات
     Method m = class_getInstanceMethod([UIViewController class], @selector(viewDidAppear:));
     orig_viewDidAppear = (void *)method_getImplementation(m);
     method_setImplementation(m, (IMP)swizzled_viewDidAppear);
