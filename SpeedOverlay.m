@@ -1,4 +1,4 @@
-ن#import <UIKit/UIKit.h>
+#import <UIKit/UIKit.h>
 
 #define SPEED_KEY @"speedEnabled"
 
@@ -13,12 +13,15 @@ static UIWindow *hideButtonWindow = nil;
 - (void)applySpeed;
 @end
 
+@interface HideController : UIViewController
+@end
+
+@interface ShowController : UIViewController
+@end
+
 static FlyController *controller = nil;
 static HideController *hc = nil;
 static ShowController *sc = nil;
-
-@interface HideController : UIViewController
-@end
 
 @implementation HideController
 - (void)hideTapped {
@@ -27,9 +30,6 @@ static ShowController *sc = nil;
     menuView.alpha = 0;
     hideButtonWindow.hidden = NO;
 }
-@end
-
-@interface ShowController : UIViewController
 @end
 
 @implementation ShowController
