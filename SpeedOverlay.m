@@ -1,6 +1,4 @@
 #import <UIKit/UIKit.h>
-#import <CommonCrypto/CommonDigest.h>
-#import <dlfcn.h>
 
 #define SPEED_KEY @"speedEnabled"
 
@@ -177,4 +175,4 @@ static void init() {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         setupOverlay();
     });
-}  
+}
