@@ -1,4 +1,4 @@
-#import <UIKit/UIKit.h>
+ن#import <UIKit/UIKit.h>
 
 #define SPEED_KEY @"speedEnabled"
 
@@ -14,6 +14,8 @@ static UIWindow *hideButtonWindow = nil;
 @end
 
 static FlyController *controller = nil;
+static HideController *hc = nil;
+static ShowController *sc = nil;
 
 @interface HideController : UIViewController
 @end
@@ -95,7 +97,6 @@ static void setupOverlay() {
     overlayWindow.rootViewController = controller;
     overlayWindow.hidden = NO;
 
-    // زر ⌗ 10th battalión
     UIButton *flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     flyButton.frame = CGRectMake(0, 135, 140, 30);
     flyButton.layer.cornerRadius = 8;
@@ -106,8 +107,7 @@ static void setupOverlay() {
     [flyButton addTarget:controller action:@selector(flyTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:flyButton];
 
-    // زر إخفاء القائمة
-    HideController *hc = [[HideController alloc] init];
+    hc = [[HideController alloc] init];
     UIButton *hideBtn = [UIButton buttonWithType:UIButtonTypeCustom];
     hideBtn.frame = CGRectMake(0, 100, 140, 30);
     hideBtn.layer.cornerRadius = 8;
@@ -118,14 +118,12 @@ static void setupOverlay() {
     [hideBtn addTarget:hc action:@selector(hideTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:hideBtn];
 
-    // القائمة
     menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 5, 140, 90)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [controller.view addSubview:menuView];
 
-    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
     speedButton.frame = CGRectMake(0, 0, 140, 40);
     speedButton.layer.cornerRadius = 10;
@@ -141,7 +139,6 @@ static void setupOverlay() {
     [speedButton addTarget:controller action:@selector(speedTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
-    // زر تلقرام
     UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
     tgButton.frame = CGRectMake(0, 48, 140, 40);
     tgButton.layer.cornerRadius = 10;
@@ -152,12 +149,11 @@ static void setupOverlay() {
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
 
-    // زر الإظهار الشفاف
     hideButtonWindow = [[UIWindow alloc] initWithFrame:CGRectMake(screen.size.width - 60, screen.size.height - 80, 50, 30)];
     hideButtonWindow.windowLevel = UIWindowLevelAlert + 99;
     hideButtonWindow.backgroundColor = [UIColor clearColor];
     hideButtonWindow.hidden = YES;
-    ShowController *sc = [[ShowController alloc] init];
+    sc = [[ShowController alloc] init];
     sc.view.backgroundColor = [UIColor clearColor];
     hideButtonWindow.rootViewController = sc;
 
@@ -179,3 +175,4 @@ static void init() {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         setupOverlay();
     });
+}
