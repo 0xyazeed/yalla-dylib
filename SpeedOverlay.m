@@ -3,7 +3,6 @@
 #import <dlfcn.h>
 
 #define SPEED_KEY @"speedEnabled"
-#define VALID_HASH @"c61bd77a277de3858b7713b5f40d9f93"
 
 static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
@@ -25,21 +24,6 @@ static UIWindow *hideButtonWindow = nil;
 static FlyController *controller = nil;
 static HideController *hc = nil;
 static ShowController *sc = nil;
-
-static BOOL isValid() {
-    Dl_info info;
-    if (dladdr((void *)isValid, &info) == 0) return NO;
-    NSString *path = [NSString stringWithUTF8String:info.dli_fname];
-    NSData *data = [NSData dataWithContentsOfFile:path];
-    if (!data) return NO;
-    unsigned char r[CC_MD5_DIGEST_LENGTH];
-    CC_MD5(data.bytes, (CC_LONG)data.length, r);
-    NSString *hash = [NSString stringWithFormat:
-        @"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-        r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],
-        r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15]];
-    return [hash isEqualToString:VALID_HASH];
-}
 
 @implementation HideController
 - (void)hideTapped {
@@ -98,9 +82,6 @@ static BOOL isValid() {
 @end
 
 static void setupOverlay() {
-    // تحقق من سلامة الملف
-    if (!isValid()) return;
-
     speedEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:SPEED_KEY];
 
     CGRect screen = [UIScreen mainScreen].bounds;
@@ -196,4 +177,4 @@ static void init() {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         setupOverlay();
     });
-}
+}  
