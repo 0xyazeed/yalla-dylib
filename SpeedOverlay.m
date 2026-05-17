@@ -23,10 +23,12 @@ static UIWindow *overlayWindow = nil;
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if ([scene isKindOfClass:[UIWindowScene class]]) {
             for (UIWindow *w in ((UIWindowScene *)scene).windows) {
-                w.layer.speed = speedEnabled ? 2.0 : 1.0;
+                w.layer.speed = speedEnabled ? 10.0 : 1.0;
             }
         }
     }
+    // تسريع كل الانميشن بالتطبيق
+    [UIView setAnimationsEnabled:speedEnabled ? NO : YES];
     if (speedEnabled) {
         [speedButton setTitle:@"✅ تم تفعيل السبيد" forState:UIControlStateNormal];
         speedButton.backgroundColor = [UIColor blackColor];
@@ -45,10 +47,13 @@ static UIWindow *overlayWindow = nil;
     [UIView animateWithDuration:0.3 animations:^{
         menuView.alpha = 0.0;
         overlayWindow.alpha = 0.0;
+    } completion:^(BOOL done) {
+        overlayWindow.hidden = YES;
     }];
 }
 
 - (void)showMenu {
+    overlayWindow.hidden = NO;
     [UIView animateWithDuration:0.3 animations:^{
         overlayWindow.alpha = 1.0;
     }];
@@ -74,7 +79,6 @@ static void setupOverlay() {
     overlayWindow.rootViewController = controller;
     overlayWindow.hidden = NO;
 
-    // زر ⌗ 10th battalión
     UIButton *flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     flyButton.frame = CGRectMake(0, 120, 140, 30);
     flyButton.layer.cornerRadius = 8;
@@ -85,14 +89,12 @@ static void setupOverlay() {
     [flyButton addTarget:controller action:@selector(flyTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:flyButton];
 
-    // القائمة تفتح لفوق
     menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 5, 140, 112)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [controller.view addSubview:menuView];
 
-    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
     speedButton.frame = CGRectMake(0, 0, 140, 50);
     speedButton.layer.cornerRadius = 10;
@@ -103,7 +105,6 @@ static void setupOverlay() {
     [speedButton addTarget:controller action:@selector(speedTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
-    // زر تلقرام
     UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
     tgButton.frame = CGRectMake(0, 58, 140, 50);
     tgButton.layer.cornerRadius = 10;
@@ -114,13 +115,11 @@ static void setupOverlay() {
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
 
-    // اختفاء عند دخول الروم
     [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidEnterNotification"
         object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
             [controller hideMenu];
         }];
 
-    // ظهور عند الخروج من الروم
     [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidExitNotification"
         object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
             [controller showMenu];
