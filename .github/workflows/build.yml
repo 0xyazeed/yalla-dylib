@@ -1,0 +1,22 @@
+name: Build dylib
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build dylib
+      run: |
+        clang -shared -fPIC -o AnimationBooster.dylib AnimationBooster.m
+
+    - name: Upload dylib
+      uses: actions/upload-artifact@v3
+      with:
+        name: AnimationBooster
+        path: AnimationBooster.dylib
