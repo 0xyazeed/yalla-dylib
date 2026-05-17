@@ -1,10 +1,12 @@
 #import <UIKit/UIKit.h>
+#import <objc/runtime.h>
 
 static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
 static UIButton *speedButton = nil;
 static UIView *menuView = nil;
 static UIWindow *overlayWindow = nil;
+static FlyController *controller = nil;
 
 @interface FlyController : UIViewController
 @end
@@ -27,8 +29,7 @@ static UIWindow *overlayWindow = nil;
             }
         }
     }
-    // تسريع كل الانميشن بالتطبيق
-    [UIView setAnimationsEnabled:speedEnabled ? NO : YES];
+    [UIView setAnimationsEnabled:!speedEnabled];
     if (speedEnabled) {
         [speedButton setTitle:@"✅ تم تفعيل السبيد" forState:UIControlStateNormal];
         speedButton.backgroundColor = [UIColor blackColor];
@@ -42,18 +43,19 @@ static UIWindow *overlayWindow = nil;
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/LJFNQ"] options:@{} completionHandler:nil];
 }
 
-- (void)hideMenu {
+- (void)hideOverlay {
     menuOpen = NO;
     [UIView animateWithDuration:0.3 animations:^{
-        menuView.alpha = 0.0;
         overlayWindow.alpha = 0.0;
     } completion:^(BOOL done) {
         overlayWindow.hidden = YES;
     }];
 }
 
-- (void)showMenu {
+- (void)showOverlay {
     overlayWindow.hidden = NO;
+    menuView.alpha = 0.0;
+    menuOpen = NO;
     [UIView animateWithDuration:0.3 animations:^{
         overlayWindow.alpha = 1.0;
     }];
@@ -61,14 +63,29 @@ static UIWindow *overlayWindow = nil;
 
 @end
 
-static FlyController *controller = nil;
+// مراقبة تغيير الـ viewController تلقائياً
+static void (*orig_viewDidAppear)(id, SEL, BOOL);
+static void swizzled_viewDidAppear(id self, SEL _cmd, BOOL animated) {
+    orig_viewDidAppear(self, _cmd, animated);
+    NSString *name = NSStringFromClass([self class]);
+    // اذا اسم الكلاس فيه Room او Live يختفي الزر
+    if ([name containsString:@"Room"] || [name containsString:@"Live"] || [name containsString:@"Chat"]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [controller hideOverlay];
+        });
+    } else {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [controller showOverlay];
+        });
+    }
+}
 
 static void setupOverlay() {
     CGRect screen = [UIScreen mainScreen].bounds;
     CGFloat w = 145;
     CGFloat h = 160;
     CGFloat x = screen.size.width - w - 10;
-    CGFloat y = screen.size.height - h - 40;
+    CGFloat y = screen.size.height - h - 120;
 
     overlayWindow = [[UIWindow alloc] initWithFrame:CGRectMake(x, y, w, h)];
     overlayWindow.windowLevel = UIWindowLevelAlert + 100;
@@ -79,6 +96,7 @@ static void setupOverlay() {
     overlayWindow.rootViewController = controller;
     overlayWindow.hidden = NO;
 
+    // زر ⌗ 10th battalión
     UIButton *flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     flyButton.frame = CGRectMake(0, 120, 140, 30);
     flyButton.layer.cornerRadius = 8;
@@ -89,12 +107,14 @@ static void setupOverlay() {
     [flyButton addTarget:controller action:@selector(flyTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:flyButton];
 
+    // القائمة
     menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 5, 140, 112)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [controller.view addSubview:menuView];
 
+    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
     speedButton.frame = CGRectMake(0, 0, 140, 50);
     speedButton.layer.cornerRadius = 10;
@@ -105,6 +125,7 @@ static void setupOverlay() {
     [speedButton addTarget:controller action:@selector(speedTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
+    // زر تلقرام
     UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
     tgButton.frame = CGRectMake(0, 58, 140, 50);
     tgButton.layer.cornerRadius = 10;
@@ -115,15 +136,10 @@ static void setupOverlay() {
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
 
-    [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidEnterNotification"
-        object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
-            [controller hideMenu];
-        }];
-
-    [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidExitNotification"
-        object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
-            [controller showMenu];
-        }];
+    // swizzle viewDidAppear لمراقبة الشاشات
+    Method m = class_getInstanceMethod([UIViewController class], @selector(viewDidAppear:));
+    orig_viewDidAppear = (void *)method_getImplementation(m);
+    method_setImplementation(m, (IMP)swizzled_viewDidAppear);
 }
 
 __attribute__((constructor))
