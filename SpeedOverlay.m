@@ -4,6 +4,7 @@ static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
 static UIButton *speedButton = nil;
 static UIView *menuView = nil;
+static UIWindow *overlayWindow = nil;
 
 @interface FlyController : UIViewController
 @end
@@ -43,16 +44,28 @@ static UIView *menuView = nil;
     menuOpen = NO;
     [UIView animateWithDuration:0.3 animations:^{
         menuView.alpha = 0.0;
+        overlayWindow.alpha = 0.0;
+    }];
+}
+
+- (void)showMenu {
+    [UIView animateWithDuration:0.3 animations:^{
+        overlayWindow.alpha = 1.0;
     }];
 }
 
 @end
 
 static FlyController *controller = nil;
-static UIWindow *overlayWindow = nil;
 
 static void setupOverlay() {
-    overlayWindow = [[UIWindow alloc] initWithFrame:CGRectMake(10, 200, 150, 160)];
+    CGRect screen = [UIScreen mainScreen].bounds;
+    CGFloat w = 145;
+    CGFloat h = 160;
+    CGFloat x = screen.size.width - w - 10;
+    CGFloat y = screen.size.height - h - 40;
+
+    overlayWindow = [[UIWindow alloc] initWithFrame:CGRectMake(x, y, w, h)];
     overlayWindow.windowLevel = UIWindowLevelAlert + 100;
     overlayWindow.backgroundColor = [UIColor clearColor];
     overlayWindow.userInteractionEnabled = YES;
@@ -63,7 +76,7 @@ static void setupOverlay() {
 
     // زر ⌗ 10th battalión
     UIButton *flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    flyButton.frame = CGRectMake(0, 0, 140, 30);
+    flyButton.frame = CGRectMake(0, 120, 140, 30);
     flyButton.layer.cornerRadius = 8;
     flyButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
     flyButton.titleLabel.font = [UIFont boldSystemFontOfSize:11];
@@ -72,8 +85,8 @@ static void setupOverlay() {
     [flyButton addTarget:controller action:@selector(flyTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:flyButton];
 
-    // القائمة
-    menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 38, 140, 115)];
+    // القائمة تفتح لفوق
+    menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 5, 140, 112)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
@@ -96,7 +109,7 @@ static void setupOverlay() {
     tgButton.layer.cornerRadius = 10;
     tgButton.titleLabel.font = [UIFont boldSystemFontOfSize:12];
     tgButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.48 blue:0.75 alpha:0.95];
-    [tgButton setTitle:@"📩 التواصل مع المبرمج" forState:UIControlStateNormal];
+    [tgButton setTitle:@"📩 ⌗ Fly .." forState:UIControlStateNormal];
     [tgButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
@@ -105,6 +118,12 @@ static void setupOverlay() {
     [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidEnterNotification"
         object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
             [controller hideMenu];
+        }];
+
+    // ظهور عند الخروج من الروم
+    [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidExitNotification"
+        object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
+            [controller showMenu];
         }];
 }
 
