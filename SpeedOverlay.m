@@ -1,22 +1,46 @@
 #import <UIKit/UIKit.h>
 
 #define SPEED_KEY @"speedEnabled"
+#define HIDDEN_KEY @"overlayHidden"
 
 static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
-static BOOL inRoom = NO;
 static UIButton *speedButton = nil;
 static UIView *menuView = nil;
 static UIWindow *overlayWindow = nil;
+static UIWindow *hideButtonWindow = nil;
 
 @interface FlyController : UIViewController
 - (void)applySpeed;
-- (void)hideOverlay;
-- (void)showOverlay;
-- (void)startMonitoring;
 @end
 
 static FlyController *controller = nil;
+
+@interface HideController : UIViewController
+@end
+
+@implementation HideController
+
+- (void)hideTapped {
+    overlayWindow.hidden = YES;
+    menuOpen = NO;
+    menuView.alpha = 0;
+    hideButtonWindow.hidden = NO;
+}
+
+@end
+
+@interface ShowController : UIViewController
+@end
+
+@implementation ShowController
+
+- (void)showTapped {
+    overlayWindow.hidden = NO;
+    hideButtonWindow.hidden = YES;
+}
+
+@end
 
 @implementation FlyController
 
@@ -56,86 +80,14 @@ static FlyController *controller = nil;
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://t.me/LJFNQ"] options:@{} completionHandler:nil];
 }
 
-- (void)hideOverlay {
-    inRoom = YES;
-    menuOpen = NO;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        menuView.alpha = 0.0;
-        overlayWindow.hidden = YES;
-        overlayWindow.alpha = 0.0;
-    });
-}
-
-- (void)showOverlay {
-    inRoom = NO;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        overlayWindow.hidden = NO;
-        menuView.alpha = 0.0;
-        menuOpen = NO;
-        [UIView animateWithDuration:0.3 animations:^{
-            overlayWindow.alpha = 1.0;
-        }];
-    });
-}
-
-- (UIViewController *)topViewController {
-    UIViewController *root = nil;
-    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-        if ([scene isKindOfClass:[UIWindowScene class]]) {
-            for (UIWindow *w in ((UIWindowScene *)scene).windows) {
-                if (w != overlayWindow && (w.isKeyWindow || root == nil)) {
-                    root = w.rootViewController;
-                }
-            }
-        }
-    }
-    if (!root) return nil;
-    
-    // نحصل على أعمق viewController
-    UIViewController *top = root;
-    while (top.presentedViewController) {
-        top = top.presentedViewController;
-    }
-    if ([top isKindOfClass:[UINavigationController class]]) {
-        top = ((UINavigationController *)top).topViewController;
-    }
-    if ([top isKindOfClass:[UITabBarController class]]) {
-        top = ((UITabBarController *)top).selectedViewController;
-        if ([top isKindOfClass:[UINavigationController class]]) {
-            top = ((UINavigationController *)top).topViewController;
-        }
-    }
-    return top;
-}
-
-- (void)startMonitoring {
-    [NSTimer scheduledTimerWithTimeInterval:0.3 repeats:YES block:^(NSTimer *timer) {
-        UIViewController *top = [self topViewController];
-        if (!top) return;
-        
-        NSString *name = NSStringFromClass([top class]);
-        BOOL shouldHide = [name containsString:@"Room"] ||
-                          [name containsString:@"Live"] ||
-                          [name containsString:@"Chat"] ||
-                          [name containsString:@"Voice"] ||
-                          [name containsString:@"Call"] ||
-                          [name containsString:@"Audio"] ||
-                          [name containsString:@"Stream"];
-
-        if (shouldHide) {
-            [self hideOverlay];
-        } else if (!shouldHide && inRoom) {
-            [self showOverlay];
-        }
-    }];
-}
-
 @end
 
 static void setupOverlay() {
     speedEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:SPEED_KEY];
 
     CGRect screen = [UIScreen mainScreen].bounds;
+
+    // النافذة الرئيسية
     CGFloat w = 145;
     CGFloat h = 160;
     CGFloat x = screen.size.width - w - 10;
@@ -150,6 +102,7 @@ static void setupOverlay() {
     overlayWindow.rootViewController = controller;
     overlayWindow.hidden = NO;
 
+    // زر ⌗ 10th battalión
     UIButton *flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     flyButton.frame = CGRectMake(0, 120, 140, 30);
     flyButton.layer.cornerRadius = 8;
@@ -160,12 +113,26 @@ static void setupOverlay() {
     [flyButton addTarget:controller action:@selector(flyTapped) forControlEvents:UIControlEventTouchUpInside];
     [controller.view addSubview:flyButton];
 
+    // زر الإخفاء الشفاف باسم القروب
+    UIButton *hideBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    hideBtn.frame = CGRectMake(0, 85, 140, 30);
+    hideBtn.layer.cornerRadius = 8;
+    hideBtn.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.05];
+    hideBtn.titleLabel.font = [UIFont boldSystemFontOfSize:10];
+    [hideBtn setTitle:@"⌗ 10th battalión" forState:UIControlStateNormal];
+    [hideBtn setTitleColor:[UIColor colorWithWhite:1.0 alpha:0.3] forState:UIControlStateNormal];
+    HideController *hc = [[HideController alloc] init];
+    [hideBtn addTarget:hc action:@selector(hideTapped) forControlEvents:UIControlEventTouchUpInside];
+    [controller.view addSubview:hideBtn];
+
+    // القائمة
     menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 5, 140, 112)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [controller.view addSubview:menuView];
 
+    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
     speedButton.frame = CGRectMake(0, 0, 140, 50);
     speedButton.layer.cornerRadius = 10;
@@ -181,6 +148,7 @@ static void setupOverlay() {
     [speedButton addTarget:controller action:@selector(speedTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
+    // زر تلقرام
     UIButton *tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
     tgButton.frame = CGRectMake(0, 58, 140, 50);
     tgButton.layer.cornerRadius = 10;
@@ -191,8 +159,27 @@ static void setupOverlay() {
     [tgButton addTarget:controller action:@selector(tgTapped) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
 
+    // زر الإظهار — شفاف بزاوية الشاشة
+    hideButtonWindow = [[UIWindow alloc] initWithFrame:CGRectMake(screen.size.width - 60, screen.size.height - 80, 50, 30)];
+    hideButtonWindow.windowLevel = UIWindowLevelAlert + 99;
+    hideButtonWindow.backgroundColor = [UIColor clearColor];
+    hideButtonWindow.hidden = YES;
+    ShowController *sc = [[ShowController alloc] init];
+    sc.view.backgroundColor = [UIColor clearColor];
+    hideButtonWindow.rootViewController = sc;
+    hideButtonWindow.hidden = YES;
+
+    UIButton *showBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    showBtn.frame = CGRectMake(0, 0, 50, 30);
+    showBtn.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.05];
+    showBtn.layer.cornerRadius = 8;
+    showBtn.titleLabel.font = [UIFont boldSystemFontOfSize:9];
+    [showBtn setTitle:@"⌗" forState:UIControlStateNormal];
+    [showBtn setTitleColor:[UIColor colorWithWhite:1.0 alpha:0.2] forState:UIControlStateNormal];
+    [showBtn addTarget:sc action:@selector(showTapped) forControlEvents:UIControlEventTouchUpInside];
+    [sc.view addSubview:showBtn];
+
     [controller applySpeed];
-    [controller startMonitoring];
 }
 
 __attribute__((constructor))
