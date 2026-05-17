@@ -24,53 +24,67 @@ static void toggleMenu() {
     }];
 }
 
+static void hideMenu() {
+    menuOpen = NO;
+    [UIView animateWithDuration:0.3 animations:^{
+        menuView.alpha = 0.0;
+    }];
+}
+
 static void setupOverlay(UIWindow *keyWindow) {
-    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(10, 200, 160, 165)];
+    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(10, 200, 170, 175)];
     container.backgroundColor = [UIColor clearColor];
     container.userInteractionEnabled = YES;
     [keyWindow addSubview:container];
 
+    // زر ⌗ 10th battalión الأزرق
     flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    flyButton.frame = CGRectMake(0, 0, 80, 32);
+    flyButton.frame = CGRectMake(0, 0, 150, 35);
     flyButton.layer.cornerRadius = 10;
-    flyButton.backgroundColor = [UIColor colorWithRed:0.05 green:0.05 blue:0.05 alpha:0.95];
+    flyButton.layer.masksToBounds = YES;
+    flyButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
     flyButton.titleLabel.font = [UIFont boldSystemFontOfSize:12];
-    [flyButton setTitle:@"⌗ Fly .." forState:UIControlStateNormal];
+    [flyButton setTitle:@"⌗ 10th battalión" forState:UIControlStateNormal];
     [flyButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [flyButton addTarget:[NSBlockOperation blockOperationWithBlock:^{ toggleMenu(); }]
-                 action:@selector(main)
-       forControlEvents:UIControlEventTouchUpInside];
+    [flyButton addTarget:[NSBlockOperation blockOperationWithBlock:^{
+        toggleMenu();
+    }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
     [container addSubview:flyButton];
 
-    menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 40, 155, 120)];
+    // القائمة
+    menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 43, 165, 125)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [container addSubview:menuView];
 
+    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    speedButton.frame = CGRectMake(0, 0, 155, 50);
+    speedButton.frame = CGRectMake(0, 0, 165, 55);
     speedButton.layer.cornerRadius = 12;
+    speedButton.layer.masksToBounds = YES;
     speedButton.titleLabel.font = [UIFont boldSystemFontOfSize:13];
-    speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.95];
+    speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
     [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
     [speedButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
     [speedButton addTarget:[NSBlockOperation blockOperationWithBlock:^{
         speedEnabled = !speedEnabled;
         applySpeed();
         if (speedEnabled) {
-            [speedButton setTitle:@"تراك تعدي بسرعة 🚀" forState:UIControlStateNormal];
+            [speedButton setTitle:@"✅ تم تفعيل السبيد" forState:UIControlStateNormal];
             speedButton.backgroundColor = [UIColor blackColor];
         } else {
             [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
-            speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.95];
+            speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.85 alpha:0.95];
         }
     }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
+    // زر تلقرام
     tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    tgButton.frame = CGRectMake(0, 60, 155, 50);
+    tgButton.frame = CGRectMake(0, 63, 165, 55);
     tgButton.layer.cornerRadius = 12;
+    tgButton.layer.masksToBounds = YES;
     tgButton.titleLabel.font = [UIFont boldSystemFontOfSize:13];
     tgButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.48 blue:0.75 alpha:0.95];
     [tgButton setTitle:@"📩 التواصل مع المبرمج" forState:UIControlStateNormal];
@@ -81,6 +95,12 @@ static void setupOverlay(UIWindow *keyWindow) {
                                  completionHandler:nil];
     }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:tgButton];
+
+    // مراقبة دخول الروم
+    [[NSNotificationCenter defaultCenter] addObserverForName:@"RoomDidEnterNotification"
+        object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
+            hideMenu();
+        }];
 }
 
 __attribute__((constructor))
