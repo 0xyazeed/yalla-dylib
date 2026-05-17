@@ -24,21 +24,12 @@ static void toggleMenu() {
     }];
 }
 
-static void hideMenu() {
-    menuOpen = NO;
-    [UIView animateWithDuration:0.3 animations:^{
-        menuView.alpha = 0.0;
-    }];
-}
-
 static void setupOverlay(UIWindow *keyWindow) {
-    // الكونتينر الرئيسي
     UIView *container = [[UIView alloc] initWithFrame:CGRectMake(10, 200, 160, 165)];
     container.backgroundColor = [UIColor clearColor];
     container.userInteractionEnabled = YES;
     [keyWindow addSubview:container];
 
-    // زر Fly الصغير
     flyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     flyButton.frame = CGRectMake(0, 0, 80, 32);
     flyButton.layer.cornerRadius = 10;
@@ -51,18 +42,16 @@ static void setupOverlay(UIWindow *keyWindow) {
        forControlEvents:UIControlEventTouchUpInside];
     [container addSubview:flyButton];
 
-    // القائمة
     menuView = [[UIView alloc] initWithFrame:CGRectMake(0, 40, 155, 120)];
     menuView.backgroundColor = [UIColor clearColor];
     menuView.alpha = 0;
     menuView.userInteractionEnabled = YES;
     [container addSubview:menuView];
 
-    // زر السرعة
     speedButton = [UIButton buttonWithType:UIButtonTypeCustom];
     speedButton.frame = CGRectMake(0, 0, 155, 50);
     speedButton.layer.cornerRadius = 12;
-    speedButton.titleLabel.font = [UIFont boldSystemFontOfSize(13];
+    speedButton.titleLabel.font = [UIFont boldSystemFontOfSize:13];
     speedButton.backgroundColor = [UIColor colorWithRed:0.1 green:0.4 blue:0.8 alpha:0.95];
     [speedButton setTitle:@"⚡ تفعيل السرعة" forState:UIControlStateNormal];
     [speedButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
@@ -79,7 +68,6 @@ static void setupOverlay(UIWindow *keyWindow) {
     }] action:@selector(main) forControlEvents:UIControlEventTouchUpInside];
     [menuView addSubview:speedButton];
 
-    // زر تلقرام
     tgButton = [UIButton buttonWithType:UIButtonTypeCustom];
     tgButton.frame = CGRectMake(0, 60, 155, 50);
     tgButton.layer.cornerRadius = 12;
