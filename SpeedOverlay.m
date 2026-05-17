@@ -1,5 +1,4 @@
 #import <UIKit/UIKit.h>
-#import <objc/runtime.h>
 
 #define SPEED_KEY @"speedEnabled"
 
@@ -73,22 +72,21 @@ static FlyController *controller = nil;
     }];
 }
 
-@end
-
-static void (*orig_viewDidAppear)(id, SEL, BOOL);
-static void swizzled_viewDidAppear(id self, SEL _cmd, BOOL animated) {
-    orig_viewDidAppear(self, _cmd, animated);
-    NSString *name = NSStringFromClass([self class]);
-    if ([name containsString:@"Room"] || [name containsString:@"Live"] || [name containsString:@"Chat"]) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [controller hideOverlay];
-        });
-    } else {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [controller showOverlay];
-        });
-    }
+// مراقبة الشاشة بدون swizzle
+- (void)startMonitoring {
+    [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(NSTimer *timer) {
+        UIViewController *top = [UIApplication sharedApplication].keyWindow.rootViewController;
+        while (top.presentedViewController) top = top.presentedViewController;
+        NSString *name = NSStringFromClass([top class]);
+        if ([name containsString:@"Room"] || [name containsString:@"Live"] || [name containsString:@"Chat"]) {
+            if (!overlayWindow.hidden) [self hideOverlay];
+        } else {
+            if (overlayWindow.hidden) [self showOverlay];
+        }
+    }];
 }
+
+@end
 
 static void setupOverlay() {
     speedEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:SPEED_KEY];
@@ -150,10 +148,7 @@ static void setupOverlay() {
     [menuView addSubview:tgButton];
 
     [controller applySpeed];
-
-    Method m = class_getInstanceMethod([UIViewController class], @selector(viewDidAppear:));
-    orig_viewDidAppear = (void *)method_getImplementation(m);
-    method_setImplementation(m, (IMP)swizzled_viewDidAppear);
+    [controller startMonitoring];
 }
 
 __attribute__((constructor))
