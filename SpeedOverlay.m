@@ -45,7 +45,7 @@ static FlyController *controller = nil;
     for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
         if ([scene isKindOfClass:[UIWindowScene class]]) {
             for (UIWindow *w in ((UIWindowScene *)scene).windows) {
-                w.layer.speed = speedEnabled ? 10.0 : 1.0;
+                w.layer.speed = speedEnabled ? 15.0 : 1.0;
             }
         }
     }
@@ -57,59 +57,76 @@ static FlyController *controller = nil;
 }
 
 - (void)hideOverlay {
-    if (overlayWindow.hidden) return;
     inRoom = YES;
     menuOpen = NO;
-    menuView.alpha = 0.0;
-    [UIView animateWithDuration:0.3 animations:^{
-        overlayWindow.alpha = 0.0;
-    } completion:^(BOOL done) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        menuView.alpha = 0.0;
         overlayWindow.hidden = YES;
-    }];
+        overlayWindow.alpha = 0.0;
+    });
 }
 
 - (void)showOverlay {
-    if (!overlayWindow.hidden) return;
     inRoom = NO;
-    overlayWindow.hidden = NO;
-    menuView.alpha = 0.0;
-    menuOpen = NO;
-    [UIView animateWithDuration:0.3 animations:^{
-        overlayWindow.alpha = 1.0;
-    }];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        overlayWindow.hidden = NO;
+        menuView.alpha = 0.0;
+        menuOpen = NO;
+        [UIView animateWithDuration:0.3 animations:^{
+            overlayWindow.alpha = 1.0;
+        }];
+    });
+}
+
+- (UIViewController *)topViewController {
+    UIViewController *root = nil;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            for (UIWindow *w in ((UIWindowScene *)scene).windows) {
+                if (w != overlayWindow && (w.isKeyWindow || root == nil)) {
+                    root = w.rootViewController;
+                }
+            }
+        }
+    }
+    if (!root) return nil;
+    
+    // نحصل على أعمق viewController
+    UIViewController *top = root;
+    while (top.presentedViewController) {
+        top = top.presentedViewController;
+    }
+    if ([top isKindOfClass:[UINavigationController class]]) {
+        top = ((UINavigationController *)top).topViewController;
+    }
+    if ([top isKindOfClass:[UITabBarController class]]) {
+        top = ((UITabBarController *)top).selectedViewController;
+        if ([top isKindOfClass:[UINavigationController class]]) {
+            top = ((UINavigationController *)top).topViewController;
+        }
+    }
+    return top;
 }
 
 - (void)startMonitoring {
-    [NSTimer scheduledTimerWithTimeInterval:0.5 repeats:YES block:^(NSTimer *timer) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            // نحصل على اعلى viewController
-            UIViewController *root = nil;
-            for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-                if ([scene isKindOfClass:[UIWindowScene class]]) {
-                    for (UIWindow *w in ((UIWindowScene *)scene).windows) {
-                        if (w.isKeyWindow) { root = w.rootViewController; break; }
-                    }
-                }
-            }
-            UIViewController *top = root;
-            while (top.presentedViewController) top = top.presentedViewController;
-            if ([top isKindOfClass:[UINavigationController class]]) {
-                top = ((UINavigationController *)top).topViewController;
-            }
+    [NSTimer scheduledTimerWithTimeInterval:0.3 repeats:YES block:^(NSTimer *timer) {
+        UIViewController *top = [self topViewController];
+        if (!top) return;
+        
+        NSString *name = NSStringFromClass([top class]);
+        BOOL shouldHide = [name containsString:@"Room"] ||
+                          [name containsString:@"Live"] ||
+                          [name containsString:@"Chat"] ||
+                          [name containsString:@"Voice"] ||
+                          [name containsString:@"Call"] ||
+                          [name containsString:@"Audio"] ||
+                          [name containsString:@"Stream"];
 
-            NSString *name = NSStringFromClass([top class]);
-            BOOL shouldHide = [name containsString:@"Room"] ||
-                              [name containsString:@"Live"] ||
-                              [name containsString:@"Chat"] ||
-                              [name containsString:@"Voice"] ||
-                              [name containsString:@"Call"];
-
-            if (shouldHide && !inRoom) {
-                [self hideOverlay];
-            } else if (!shouldHide && inRoom) {
-                [self showOverlay];
-            }
-        });
+        if (shouldHide) {
+            [self hideOverlay];
+        } else if (!shouldHide && inRoom) {
+            [self showOverlay];
+        }
     }];
 }
 
