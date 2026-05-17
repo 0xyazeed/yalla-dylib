@@ -13,7 +13,10 @@ jobs:
 
     - name: Build dylib
       run: |
-        clang -shared -fPIC \
+        SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+        clang -arch arm64 \
+          -isysroot $SDK \
+          -shared \
           -framework UIKit \
           -framework Foundation \
           -o AnimationBooster.dylib \
