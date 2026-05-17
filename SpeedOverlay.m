@@ -4,6 +4,7 @@
 
 static BOOL speedEnabled = NO;
 static BOOL menuOpen = NO;
+static BOOL inRoom = NO;
 static UIButton *speedButton = nil;
 static UIView *menuView = nil;
 static UIWindow *overlayWindow = nil;
@@ -12,6 +13,7 @@ static UIWindow *overlayWindow = nil;
 - (void)applySpeed;
 - (void)hideOverlay;
 - (void)showOverlay;
+- (void)startMonitoring;
 @end
 
 static FlyController *controller = nil;
@@ -55,7 +57,10 @@ static FlyController *controller = nil;
 }
 
 - (void)hideOverlay {
+    if (overlayWindow.hidden) return;
+    inRoom = YES;
     menuOpen = NO;
+    menuView.alpha = 0.0;
     [UIView animateWithDuration:0.3 animations:^{
         overlayWindow.alpha = 0.0;
     } completion:^(BOOL done) {
@@ -64,6 +69,8 @@ static FlyController *controller = nil;
 }
 
 - (void)showOverlay {
+    if (!overlayWindow.hidden) return;
+    inRoom = NO;
     overlayWindow.hidden = NO;
     menuView.alpha = 0.0;
     menuOpen = NO;
@@ -72,17 +79,37 @@ static FlyController *controller = nil;
     }];
 }
 
-// مراقبة الشاشة بدون swizzle
 - (void)startMonitoring {
-    [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(NSTimer *timer) {
-        UIViewController *top = [UIApplication sharedApplication].keyWindow.rootViewController;
-        while (top.presentedViewController) top = top.presentedViewController;
-        NSString *name = NSStringFromClass([top class]);
-        if ([name containsString:@"Room"] || [name containsString:@"Live"] || [name containsString:@"Chat"]) {
-            if (!overlayWindow.hidden) [self hideOverlay];
-        } else {
-            if (overlayWindow.hidden) [self showOverlay];
-        }
+    [NSTimer scheduledTimerWithTimeInterval:0.5 repeats:YES block:^(NSTimer *timer) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            // نحصل على اعلى viewController
+            UIViewController *root = nil;
+            for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+                if ([scene isKindOfClass:[UIWindowScene class]]) {
+                    for (UIWindow *w in ((UIWindowScene *)scene).windows) {
+                        if (w.isKeyWindow) { root = w.rootViewController; break; }
+                    }
+                }
+            }
+            UIViewController *top = root;
+            while (top.presentedViewController) top = top.presentedViewController;
+            if ([top isKindOfClass:[UINavigationController class]]) {
+                top = ((UINavigationController *)top).topViewController;
+            }
+
+            NSString *name = NSStringFromClass([top class]);
+            BOOL shouldHide = [name containsString:@"Room"] ||
+                              [name containsString:@"Live"] ||
+                              [name containsString:@"Chat"] ||
+                              [name containsString:@"Voice"] ||
+                              [name containsString:@"Call"];
+
+            if (shouldHide && !inRoom) {
+                [self hideOverlay];
+            } else if (!shouldHide && inRoom) {
+                [self showOverlay];
+            }
+        });
     }];
 }
 
